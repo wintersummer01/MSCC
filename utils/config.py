@@ -1,13 +1,19 @@
-# Useful roots/dirs
-DATA_ROOT = '/workspace/dataset/cifar-10-batches-py/'
+class config:
+    # Useful roots/dirs
+    DATA_ROOT = '/workspace/dataset/cifar-10-batches-py/'
 
-# Training Spec
-LR = 0.0001
-BATCH_SIZE = 20
-TEST_BATCH = 64
+    # Data Spec
+    IMAGE_SHAPE = (32, 32, 3)
+    TRAIN_BATCH_SIZE = 128
+    TEST_BATCH_SIZE = 256
 
-# transformer spec
-PATCH_MERGE_SIZE = 2
-MLP_RATIO = 4
-CHANNEL_DIMENSION = 256
-NUM_BLOCKS_IN_LAYER = [2, 6]
+    # Training Spec
+    LR = 1e-4
+    TRAIN_SNR = 10
+
+    # transformer Spec
+    PATCH_MERGE_SIZE = 2
+    MLP_RATIO = 4
+    CHANNEL_DIMENSION = 256
+    NUM_BLOCKS_IN_LAYER = (2, 6)
+    NUM_MHSA_HEADS = 8

@@ -36,13 +36,9 @@ class transformer_block(layers.Layer):
         self.activation = tf.keras.activations.gelu
 
     # input dimension = B * L * C
-    # B: Batch size
-    # L: number of tokens (h/2 * w/2 = window_size**2 = 16**2)
-    # C: token dimension (256)
     def __call__(self, x):
         # LayerNorm
         norm_x = self.norm(x)
-
         # Multi-Head Self Attention
         QKV = tf.reshape(self.to_qkv(norm_x), [-1, self.L, 3, self.num_heads, int(self.C/self.num_heads)])
         QKV = tf.transpose(QKV, [2, 0, 3, 1, 4])
@@ -50,18 +46,15 @@ class transformer_block(layers.Layer):
         attention = tf.linalg.matmul(Q, K, transpose_b=True)/tf.math.sqrt(self.C/self.num_heads)
         raw_mhsa = tf.linalg.matmul(self.softmax(self.bias(attention)), V)
         mhsa = self.projection(tf.reshape(tf.transpose(raw_mhsa, [0, 2, 1, 3]), [-1, self.L, self.C]))
-        
         # Add
         output1 = x + mhsa
         
         # LayerNorm
         norm_output1 = self.norm(output1)
-        
         # MLP
         mlp = self.fc1(norm_output1)
         mlp = self.activation(mlp)
         mlp = self.fc2(mlp)
-        
         # Add
         output2 = output1 + mlp
         
@@ -70,10 +63,11 @@ class transformer_block(layers.Layer):
     
 class encoding_stage(layers.Layer):
     def __init__(self, in_shape, out_dim, ps, layer_blocks, num_heads, mlp_ratio):
+        super().__init__()
         H, W, self.in_dim = in_shape
         self.out_dim = out_dim
         self.ps = ps
-        self.wH, self.wW = int(H/self.ps), int(W/self.ps)
+        self.wH, self.wW = H//self.ps, W//self.ps
         
         self.embedding = layers.Dense(self.out_dim)
         self.blocks = []
@@ -89,10 +83,13 @@ class encoding_stage(layers.Layer):
         for block in self.blocks:
             token = block(token)
             
+        return token
+            
             
 class decoding_stage(layers.Layer):
     def __init__(self, in_shape, out_dim, ps, layer_blocks, num_heads, mlp_ratio):
-        self.wH, self.wW, self.in_dim = in_shape
+        super().__init__()
+        self.wH, self.wW, _ = in_shape
         self.out_dim = out_dim
         self.ps = ps
         self.L = self.wH*self.wW*(self.ps**2)
@@ -110,4 +107,6 @@ class decoding_stage(layers.Layer):
         patch = tf.reshape(patch, [-1, self.wH, self.wW, self.ps, self.ps*self.out_dim])
         patch = tf.transpose(patch, [0, 1, 3, 2, 4])
         patch = tf.reshape(patch, [-1, self.L, self.out_dim])
+        
+        return patch
         
